@@ -1,4 +1,4 @@
-package io.isotope.enigma.enigma.client;
+package io.isotope.enigma.client;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
