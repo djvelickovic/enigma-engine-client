@@ -1,4 +1,4 @@
-package io.isotope.enigma.client;
+package io.isotope.enigma.client.config;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
