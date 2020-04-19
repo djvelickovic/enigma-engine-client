@@ -24,6 +24,7 @@ public class CryptoClient {
             return webClient.post()
                     .uri("crypto/map/encrypt/{key}", key)
                     .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(values)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<Map<String, String>>() {})
@@ -38,6 +39,9 @@ public class CryptoClient {
         try {
             return webClient.post()
                     .uri("crypto/map/decrypt/{key}", key)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .bodyValue(values)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<Map<String, String>>() {})
                     .block();

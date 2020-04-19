@@ -28,6 +28,7 @@ public class KeyManagementClient {
             webClient.post()
                     .uri("keys")
                     .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(body)
                     .retrieve()
                     .toBodilessEntity()
@@ -40,8 +41,9 @@ public class KeyManagementClient {
     public List<KeySpecificationReduced> getKeys() {
         log.debug("Fetching keys");
         try {
-            return webClient.post()
+            return webClient.get()
                     .uri("keys")
+                    .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<KeySpecificationReduced>>() {})
                     .block();
