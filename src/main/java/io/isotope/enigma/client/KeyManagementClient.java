@@ -6,19 +6,17 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
-public class KeyManagerService {
+public class KeyManagementClient {
 
-    private static final Logger log = LoggerFactory.getLogger(KeyManagerService.class);
+    private static final Logger log = LoggerFactory.getLogger(KeyManagementClient.class);
 
     private final WebClient webClient;
 
-    public KeyManagerService(WebClient webClient) {
+    public KeyManagementClient(WebClient webClient) {
         this.webClient = webClient;
     }
 

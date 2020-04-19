@@ -8,13 +8,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Map;
 
-public class CryptoService {
+public class CryptoClient {
 
-    private static final Logger log = LoggerFactory.getLogger(CryptoService.class);
+    private static final Logger log = LoggerFactory.getLogger(CryptoClient.class);
 
     private final WebClient webClient;
 
-    public CryptoService(WebClient webClient) {
+    public CryptoClient(WebClient webClient) {
         this.webClient = webClient;
     }
 

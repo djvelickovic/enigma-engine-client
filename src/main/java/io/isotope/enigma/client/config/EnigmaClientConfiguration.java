@@ -1,7 +1,7 @@
 package io.isotope.enigma.client.config;
 
-import io.isotope.enigma.client.CryptoService;
-import io.isotope.enigma.client.KeyManagerService;
+import io.isotope.enigma.client.CryptoClient;
+import io.isotope.enigma.client.KeyManagementClient;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,13 +26,13 @@ import java.util.stream.Collectors;
 public class EnigmaClientConfiguration {
 
     @Bean
-    public KeyManagerService keyManagerGateway(@Qualifier("enigmaWebClient") WebClient enigmaWebClient) {
-        return new KeyManagerService(enigmaWebClient);
+    public KeyManagementClient keyManagerGateway(@Qualifier("enigmaWebClient") WebClient enigmaWebClient) {
+        return new KeyManagementClient(enigmaWebClient);
     }
 
     @Bean
-    public CryptoService cryptoService(@Qualifier("enigmaWebClient") WebClient enigmaWebClient) {
-        return new CryptoService(enigmaWebClient);
+    public CryptoClient cryptoService(@Qualifier("enigmaWebClient") WebClient enigmaWebClient) {
+        return new CryptoClient(enigmaWebClient);
     }
 
     @Bean("enigmaWebClient")
