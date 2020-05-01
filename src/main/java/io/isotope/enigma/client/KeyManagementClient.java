@@ -20,13 +20,14 @@ public class KeyManagementClient {
         this.webClient = webClient;
     }
 
-    public void createKey(String keyName) {
+    public void createKey(String keyName, String authToken) {
         log.debug("Creating key {}", keyName);
         try {
             Map<String, String> body = new HashMap<>();
             body.put("name", keyName);
             webClient.post()
                     .uri("keys")
+                    .header("Authorization", "Bearer " + authToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(body)
@@ -38,17 +39,34 @@ public class KeyManagementClient {
         }
     }
 
-    public List<KeySpecificationReduced> getKeys() {
+    public List<KeySpecificationReduced> getKeys(String authToken) {
         log.debug("Fetching keys");
         try {
             return webClient.get()
                     .uri("keys")
+                    .header("Authorization", "Bearer " + authToken)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<List<KeySpecificationReduced>>() {})
+                    .bodyToMono(new ParameterizedTypeReference<List<KeySpecificationReduced>>() {
+                    })
                     .block();
         } catch (Exception e) {
             throw new EnigmaException("Unable to fetch keys", e);
+        }
+    }
+
+    public void updateKey(String key, UpdateKeyRequest request, String authToken) {
+        try {
+            webClient.post()
+                    .uri("keys/{key}", key)
+                    .header("Authorization", "Bearer " + authToken)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .bodyValue(request)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+        } catch (Exception e) {
+            throw new EnigmaException("Unable to update key " + key, e);
         }
     }
 }

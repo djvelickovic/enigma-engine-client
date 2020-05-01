@@ -18,11 +18,12 @@ public class CryptoClient {
         this.webClient = webClient;
     }
 
-    public Map<String, String> encryptMap(Map<String, String> values, String key) {
+    public Map<String, String> encryptMap(Map<String, String> values, String key, String authToken) {
         log.debug("Fetching key {} specification", key);
         try {
             return webClient.post()
                     .uri("crypto/map/encrypt/{key}", key)
+                    .header("Authorization", "Bearer " + authToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(values)
@@ -34,11 +35,12 @@ public class CryptoClient {
         }
     }
 
-    public Map<String, String> decryptMap(Map<String, String> values, String key) {
+    public Map<String, String> decryptMap(Map<String, String> values, String key, String authToken) {
         log.debug("Fetching key {} specification", key);
         try {
             return webClient.post()
                     .uri("crypto/map/decrypt/{key}", key)
+                    .header("Authorization", "Bearer " + authToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(values)
