@@ -6,6 +6,7 @@ public class KeySpecificationReduced {
 
     private String name;
     private LocalDateTime created;
+    private LocalDateTime updated;
     private Boolean active;
 
     public Boolean getActive() {
@@ -30,5 +31,13 @@ public class KeySpecificationReduced {
 
     public void setCreated(LocalDateTime created) {
         this.created = created;
+    }
+
+    public LocalDateTime getUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(LocalDateTime updated) {
+        this.updated = updated;
     }
 }

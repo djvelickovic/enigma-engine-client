@@ -57,9 +57,10 @@ public class KeyManagementClient {
 
     public void updateKey(String key, UpdateKeyRequest request, String authToken) {
         try {
-            webClient.post()
+            webClient.put()
                     .uri("keys/{key}", key)
                     .header("Authorization", "Bearer " + authToken)
+                    .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(request)
                     .retrieve()

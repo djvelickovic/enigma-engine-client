@@ -9,9 +9,11 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.PrivateKey;
@@ -48,12 +50,14 @@ public class EnigmaClientConfiguration {
             final KeyStore keyStore;
 
             trustStore = KeyStore.getInstance(properties.getKeyStoreType());
-            trustStore.load(EnigmaClientConfiguration.class.getClassLoader()
-                    .getResourceAsStream(properties.getTrustStore()), trustStorePass.toCharArray());
+            try (InputStream is = ResourceUtils.getURL(properties.getTrustStore()).openStream()) {
+                trustStore.load(is, trustStorePass.toCharArray());
+            }
 
             keyStore = KeyStore.getInstance(properties.getTrustStoreType());
-            keyStore.load(EnigmaClientConfiguration.class.getClassLoader()
-                    .getResourceAsStream(properties.getKeyStore()), keyStorePass.toCharArray());
+            try (InputStream is = ResourceUtils.getURL(properties.getKeyStore()).openStream()) {
+                keyStore.load(is, keyStorePass.toCharArray());
+            }
 
             final X509Certificate[] certificates = Collections.list(trustStore.aliases())
                     .stream()
