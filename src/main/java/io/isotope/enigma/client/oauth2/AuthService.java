@@ -1,0 +1,68 @@
+package io.isotope.enigma.client.oauth2;
+
+import io.isotope.enigma.client.config.OAuth2Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+public class AuthService {
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
+    private final AtomicLong expirationTime = new AtomicLong(0);
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private AccessToken currentAccessToken;
+
+
+    private final WebClient authClient;
+    private final OAuth2Properties oAuth2Properties;
+
+    public AuthService(WebClient authClient, OAuth2Properties oAuth2Properties) {
+        this.authClient = authClient;
+        this.oAuth2Properties = oAuth2Properties;
+    }
+
+    public String getToken() {
+        expirationTime.updateAndGet(time -> {
+            if (time < System.currentTimeMillis()) {
+                currentAccessToken = fetchAccessToken();
+                logger.info("Fetched access token {}", currentAccessToken);
+                return (currentAccessToken.getExpiresIn() - 30) * 1000 + System.currentTimeMillis();
+            }
+            return time;
+        });
+        return currentAccessToken.getAccessToken();
+    }
+
+    private AccessToken fetchAccessToken() {
+        return authClient.post()
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData("client_id", oAuth2Properties.getClientId())
+                        .with("client_secret", oAuth2Properties.getClientSecret())
+                        .with("grant_type", "client_credentials"))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<AccessToken>() {
+                })
+                .block();
+    }
+
+    private AccessToken refreshAccessToken(String refreshToken) {
+        return authClient.post()
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(BodyInserters.fromFormData("client_id", oAuth2Properties.getClientId())
+                        .with("refresh_token", refreshToken)
+                        .with("grant_type", "refresh_token"))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<AccessToken>() {
+                })
+                .block();
+    }
+}

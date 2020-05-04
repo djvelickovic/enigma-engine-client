@@ -1,6 +1,7 @@
 package io.isotope.enigma.client.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
 @ConfigurationProperties(prefix = "enigma.client")
 public class EnigmaClientProperties {
@@ -16,6 +17,17 @@ public class EnigmaClientProperties {
     private String trustStore;
     private String trustStoreType = "pcks12";
     private String trustStorePassword;
+
+    @NestedConfigurationProperty
+    private OAuth2Properties oauth2;
+
+    public OAuth2Properties getOauth2() {
+        return oauth2;
+    }
+
+    public void setOauth2(OAuth2Properties oauth2) {
+        this.oauth2 = oauth2;
+    }
 
     public Boolean getTwoWayEnabled() {
         return twoWayEnabled;

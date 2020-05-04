@@ -20,14 +20,13 @@ public class KeyManagementClient {
         this.webClient = webClient;
     }
 
-    public void createKey(String keyName, String authToken) {
+    public void createKey(String keyName) {
         log.debug("Creating key {}", keyName);
         try {
             Map<String, String> body = new HashMap<>();
             body.put("name", keyName);
             webClient.post()
                     .uri("keys")
-                    .header("Authorization", "Bearer " + authToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(body)
@@ -39,12 +38,11 @@ public class KeyManagementClient {
         }
     }
 
-    public List<KeySpecificationReduced> getKeys(String authToken) {
+    public List<KeySpecificationReduced> getKeys() {
         log.debug("Fetching keys");
         try {
             return webClient.get()
                     .uri("keys")
-                    .header("Authorization", "Bearer " + authToken)
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<KeySpecificationReduced>>() {
@@ -55,11 +53,10 @@ public class KeyManagementClient {
         }
     }
 
-    public void updateKey(String key, UpdateKeyRequest request, String authToken) {
+    public void updateKey(String key, UpdateKeyRequest request) {
         try {
             webClient.put()
                     .uri("keys/{key}", key)
-                    .header("Authorization", "Bearer " + authToken)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(request)

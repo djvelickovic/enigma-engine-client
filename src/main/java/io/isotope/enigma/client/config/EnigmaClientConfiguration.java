@@ -2,6 +2,7 @@ package io.isotope.enigma.client.config;
 
 import io.isotope.enigma.client.CryptoClient;
 import io.isotope.enigma.client.KeyManagementClient;
+import io.isotope.enigma.client.oauth2.AuthService;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,6 +11,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.ResourceUtils;
+import org.springframework.web.reactive.function.client.ClientRequest;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
@@ -23,7 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({EnigmaClientProperties.class})
 public class EnigmaClientConfiguration {
 
@@ -37,8 +40,23 @@ public class EnigmaClientConfiguration {
         return new CryptoClient(enigmaWebClient);
     }
 
+    @Bean
+    public AuthService authService(WebClient keycloakWebClient, EnigmaClientProperties enigmaClientProperties) {
+        return new AuthService(keycloakWebClient, enigmaClientProperties.getOauth2());
+    }
+
+
     @Bean("enigmaWebClient")
-    public WebClient enigmaWebClient(EnigmaClientProperties properties) throws Exception {
+    public WebClient enigmaWebClient(EnigmaClientProperties properties, AuthService authService) throws Exception {
+
+        ExchangeFilterFunction authFilterFunction = ((request, next) -> {
+            String token = authService.getToken();
+            ClientRequest clientRequest = ClientRequest.from(request)
+                    .header("Authorization", "Bearer " + token)
+                    .build();
+
+            return next.exchange(clientRequest);
+        });
 
         if (properties.getTwoWayEnabled()) {
 
@@ -93,7 +111,58 @@ public class EnigmaClientConfiguration {
             return WebClient.builder()
                     .clientConnector(new ReactorClientHttpConnector(httpConnector))
                     .baseUrl(properties.getEnigmaBaseUrl())
+                    .filter(authFilterFunction)
                     .build();
+
+        } else {
+            return WebClient.builder()
+                    .baseUrl(properties.getEnigmaBaseUrl())
+                    .filter(authFilterFunction)
+                    .build();
+        }
+    }
+
+    @Bean("keycloakWebClient")
+    public WebClient keycloakWebClient(EnigmaClientProperties properties) throws Exception {
+
+        if (properties.getOauth2().getTrustStore() != null) {
+
+            final String trustStorePass = properties.getOauth2().getTrustStorePassword();
+
+            final KeyStore trustStore;
+
+            trustStore = KeyStore.getInstance(properties.getOauth2().getTrustStoreType());
+            try (InputStream is = ResourceUtils.getURL(properties.getOauth2().getTrustStore()).openStream()) {
+                trustStore.load(is, trustStorePass.toCharArray());
+            }
+
+            final X509Certificate[] certificates = Collections.list(trustStore.aliases())
+                    .stream()
+                    .filter(t -> {
+                        try {
+                            return trustStore.isCertificateEntry(t);
+                        } catch (KeyStoreException e1) {
+                            throw new RuntimeException("Error reading truststore", e1);
+                        }
+                    })
+                    .map(t -> {
+                        try {
+                            return trustStore.getCertificate(t);
+                        } catch (KeyStoreException e2) {
+                            throw new RuntimeException("Error reading truststore", e2);
+                        }
+                    }).toArray(X509Certificate[]::new);
+
+            SslContext sslContext = SslContextBuilder.forClient()
+                    .trustManager(certificates)
+                    .build();
+
+            HttpClient httpConnector = HttpClient.create().secure(t -> t.sslContext(sslContext));
+            return WebClient.builder()
+                    .clientConnector(new ReactorClientHttpConnector(httpConnector))
+                    .baseUrl(properties.getOauth2().getOauth2TokenUri())
+                    .build();
+
         } else {
             return WebClient.builder()
                     .baseUrl(properties.getEnigmaBaseUrl())
