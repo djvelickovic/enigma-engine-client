@@ -8,17 +8,12 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
-    private final AtomicLong expirationTime = new AtomicLong(0);
-    private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final AtomicLong fetchTime = new AtomicLong(0);
     private AccessToken currentAccessToken;
 
 
@@ -31,11 +26,26 @@ public class AuthService {
     }
 
     public String getToken() {
-        expirationTime.updateAndGet(time -> {
-            if (time < System.currentTimeMillis()) {
+        final AccessToken accessToken = currentAccessToken;
+        fetchTime.updateAndGet(time -> {
+            if (accessToken == null) {
                 currentAccessToken = fetchAccessToken();
-                logger.info("Fetched access token {}", currentAccessToken);
-                return (currentAccessToken.getExpiresIn() - 30) * 1000 + System.currentTimeMillis();
+                logger.info("Fetched new access token");
+                return System.currentTimeMillis();
+            }
+            long systemTime = System.currentTimeMillis();
+
+            if (time + (accessToken.getExpiresIn() - 30) * 1000 < systemTime) {
+                if (time + (accessToken.getRefreshExpiresIn() - 30) * 1000 < systemTime) {
+                    currentAccessToken = fetchAccessToken();
+                    logger.info("Fetched new access token");
+                }
+                else {
+                    currentAccessToken = refreshAccessToken();
+                    logger.info("Refreshed access token");
+                }
+
+                return systemTime;
             }
             return time;
         });
@@ -54,11 +64,12 @@ public class AuthService {
                 .block();
     }
 
-    private AccessToken refreshAccessToken(String refreshToken) {
+    private AccessToken refreshAccessToken() {
         return authClient.post()
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData("client_id", oAuth2Properties.getClientId())
-                        .with("refresh_token", refreshToken)
+                        .with("refresh_token", currentAccessToken.getRefreshToken())
+                        .with("client_secret", oAuth2Properties.getClientSecret())
                         .with("grant_type", "refresh_token"))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<AccessToken>() {

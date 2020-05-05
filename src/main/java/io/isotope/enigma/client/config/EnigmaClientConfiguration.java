@@ -64,35 +64,16 @@ public class EnigmaClientConfiguration {
             final String trustStorePass = properties.getTrustStorePassword();
             final String keyAlias = properties.getKeyStoreAlias();
 
-            final KeyStore trustStore;
-            final KeyStore keyStore;
 
-            trustStore = KeyStore.getInstance(properties.getKeyStoreType());
+            final KeyStore trustStore = KeyStore.getInstance(properties.getTrustStoreType());
             try (InputStream is = ResourceUtils.getURL(properties.getTrustStore()).openStream()) {
                 trustStore.load(is, trustStorePass.toCharArray());
             }
 
-            keyStore = KeyStore.getInstance(properties.getTrustStoreType());
+            final KeyStore keyStore = KeyStore.getInstance(properties.getKeyStoreType());
             try (InputStream is = ResourceUtils.getURL(properties.getKeyStore()).openStream()) {
                 keyStore.load(is, keyStorePass.toCharArray());
             }
-
-            final X509Certificate[] certificates = Collections.list(trustStore.aliases())
-                    .stream()
-                    .filter(t -> {
-                        try {
-                            return trustStore.isCertificateEntry(t);
-                        } catch (KeyStoreException e1) {
-                            throw new RuntimeException("Error reading truststore", e1);
-                        }
-                    })
-                    .map(t -> {
-                        try {
-                            return trustStore.getCertificate(t);
-                        } catch (KeyStoreException e2) {
-                            throw new RuntimeException("Error reading truststore", e2);
-                        }
-                    }).toArray(X509Certificate[]::new);
 
             final PrivateKey privateKey = (PrivateKey) keyStore.getKey(keyAlias, keyStorePass.toCharArray());
 
@@ -104,7 +85,7 @@ public class EnigmaClientConfiguration {
 
             SslContext sslContext = SslContextBuilder.forClient()
                     .keyManager(privateKey, keyStorePass, x509CertificateChain)
-                    .trustManager(certificates)
+                    .trustManager(extractX509Certificates(trustStore))
                     .build();
 
             HttpClient httpConnector = HttpClient.create().secure(t -> t.sslContext(sslContext));
@@ -122,6 +103,25 @@ public class EnigmaClientConfiguration {
         }
     }
 
+    private X509Certificate[] extractX509Certificates(KeyStore store) throws KeyStoreException {
+        return Collections.list(store.aliases())
+                .stream()
+                .filter(t -> {
+                    try {
+                        return store.isCertificateEntry(t);
+                    } catch (KeyStoreException e1) {
+                        throw new RuntimeException("Error reading truststore", e1);
+                    }
+                })
+                .map(t -> {
+                    try {
+                        return store.getCertificate(t);
+                    } catch (KeyStoreException e2) {
+                        throw new RuntimeException("Error reading truststore", e2);
+                    }
+                }).toArray(X509Certificate[]::new);
+    }
+
     @Bean("keycloakWebClient")
     public WebClient keycloakWebClient(EnigmaClientProperties properties) throws Exception {
 
@@ -129,32 +129,13 @@ public class EnigmaClientConfiguration {
 
             final String trustStorePass = properties.getOauth2().getTrustStorePassword();
 
-            final KeyStore trustStore;
-
-            trustStore = KeyStore.getInstance(properties.getOauth2().getTrustStoreType());
+            final KeyStore trustStore = KeyStore.getInstance(properties.getOauth2().getTrustStoreType());
             try (InputStream is = ResourceUtils.getURL(properties.getOauth2().getTrustStore()).openStream()) {
                 trustStore.load(is, trustStorePass.toCharArray());
             }
 
-            final X509Certificate[] certificates = Collections.list(trustStore.aliases())
-                    .stream()
-                    .filter(t -> {
-                        try {
-                            return trustStore.isCertificateEntry(t);
-                        } catch (KeyStoreException e1) {
-                            throw new RuntimeException("Error reading truststore", e1);
-                        }
-                    })
-                    .map(t -> {
-                        try {
-                            return trustStore.getCertificate(t);
-                        } catch (KeyStoreException e2) {
-                            throw new RuntimeException("Error reading truststore", e2);
-                        }
-                    }).toArray(X509Certificate[]::new);
-
             SslContext sslContext = SslContextBuilder.forClient()
-                    .trustManager(certificates)
+                    .trustManager(extractX509Certificates(trustStore))
                     .build();
 
             HttpClient httpConnector = HttpClient.create().secure(t -> t.sslContext(sslContext));
