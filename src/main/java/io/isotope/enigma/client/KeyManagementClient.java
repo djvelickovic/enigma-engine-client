@@ -38,14 +38,14 @@ public class KeyManagementClient {
         }
     }
 
-    public List<KeySpecificationReduced> getKeys() {
+    public List<RSAKeyMetadata> getKeys() {
         log.debug("Fetching keys");
         try {
             return webClient.get()
                     .uri("keys")
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<List<KeySpecificationReduced>>() {
+                    .bodyToMono(new ParameterizedTypeReference<List<RSAKeyMetadata>>() {
                     })
                     .block();
         } catch (Exception e) {
