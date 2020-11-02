@@ -20,11 +20,12 @@ public class KeyManagementClient {
         this.webClient = webClient;
     }
 
-    public void createKey(String keyName) {
-        log.debug("Creating key {}", keyName);
+    public void createKey(String keyName, Integer size) {
+        log.debug("Creating key with name {} and size {}", keyName, size);
         try {
             Map<String, String> body = new HashMap<>();
             body.put("name", keyName);
+            body.put("size", Integer.toString(size));
             webClient.post()
                     .uri("keys")
                     .contentType(MediaType.APPLICATION_JSON)
