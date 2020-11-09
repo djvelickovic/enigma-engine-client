@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Builder
 @ToString
-public class RSAKeyMetadata {
+public class KeyMetadataDTO {
 
     private String name;
     private String padding;

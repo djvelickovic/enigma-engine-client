@@ -23,14 +23,16 @@ public class KeyManagementClient {
     public void createKey(String keyName, Integer size) {
         log.debug("Creating key with name {} and size {}", keyName, size);
         try {
-            Map<String, String> body = new HashMap<>();
-            body.put("name", keyName);
-            body.put("size", Integer.toString(size));
+            KeyMetadataDTO request = KeyMetadataDTO.builder()
+                    .name(keyName)
+                    .size(size)
+                    .build();
+
             webClient.post()
                     .uri("keys")
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
-                    .bodyValue(body)
+                    .bodyValue(request)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
@@ -39,14 +41,14 @@ public class KeyManagementClient {
         }
     }
 
-    public List<RSAKeyMetadata> getKeys() {
+    public List<KeyMetadataDTO> getKeys() {
         log.debug("Fetching keys");
         try {
             return webClient.get()
                     .uri("keys")
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<List<RSAKeyMetadata>>() {
+                    .bodyToMono(new ParameterizedTypeReference<List<KeyMetadataDTO>>() {
                     })
                     .block();
         } catch (Exception e) {
@@ -54,8 +56,12 @@ public class KeyManagementClient {
         }
     }
 
-    public void updateKey(String key, UpdateKeyRequest request) {
+    public void updateKey(String key, boolean active) {
         try {
+            KeyMetadataDTO request = KeyMetadataDTO.builder()
+                    .active(active)
+                    .build();
+
             webClient.put()
                     .uri("keys/{key}", key)
                     .contentType(MediaType.APPLICATION_JSON)

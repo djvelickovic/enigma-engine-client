@@ -49,6 +49,7 @@ public class EnigmaClientConfiguration {
     @Bean("enigmaWebClient")
     public WebClient enigmaWebClient(EnigmaClientProperties properties, AuthService authService) throws Exception {
 
+        // filter pri svakom slanju zahteva serveru, da doda access token
         ExchangeFilterFunction authFilterFunction = ((request, next) -> {
             String token = authService.getToken();
             ClientRequest clientRequest = ClientRequest.from(request)
@@ -58,49 +59,43 @@ public class EnigmaClientConfiguration {
             return next.exchange(clientRequest);
         });
 
-        if (properties.getTwoWayEnabled()) {
+        final String keyStorePass = properties.getKeyStorePassword();
+        final String trustStorePass = properties.getTrustStorePassword();
+        final String keyAlias = properties.getKeyStoreAlias();
 
-            final String keyStorePass = properties.getKeyStorePassword();
-            final String trustStorePass = properties.getTrustStorePassword();
-            final String keyAlias = properties.getKeyStoreAlias();
-
-
-            final KeyStore trustStore = KeyStore.getInstance(properties.getTrustStoreType());
-            try (InputStream is = ResourceUtils.getURL(properties.getTrustStore()).openStream()) {
-                trustStore.load(is, trustStorePass.toCharArray());
-            }
-
-            final KeyStore keyStore = KeyStore.getInstance(properties.getKeyStoreType());
-            try (InputStream is = ResourceUtils.getURL(properties.getKeyStore()).openStream()) {
-                keyStore.load(is, keyStorePass.toCharArray());
-            }
-
-            final PrivateKey privateKey = (PrivateKey) keyStore.getKey(keyAlias, keyStorePass.toCharArray());
-
-            Certificate[] certChain = keyStore.getCertificateChain(keyAlias);
-            X509Certificate[] x509CertificateChain = Arrays.stream(certChain)
-                    .map(certificate -> (X509Certificate) certificate)
-                    .collect(Collectors.toList())
-                    .toArray(new X509Certificate[certChain.length]);
-
-            SslContext sslContext = SslContextBuilder.forClient()
-                    .keyManager(privateKey, keyStorePass, x509CertificateChain)
-                    .trustManager(extractX509Certificates(trustStore))
-                    .build();
-
-            HttpClient httpConnector = HttpClient.create().secure(t -> t.sslContext(sslContext));
-            return WebClient.builder()
-                    .clientConnector(new ReactorClientHttpConnector(httpConnector))
-                    .baseUrl(properties.getEnigmaBaseUrl())
-                    .filter(authFilterFunction)
-                    .build();
-
-        } else {
-            return WebClient.builder()
-                    .baseUrl(properties.getEnigmaBaseUrl())
-                    .filter(authFilterFunction)
-                    .build();
+        // ucitava trust store
+        final KeyStore trustStore = KeyStore.getInstance(properties.getTrustStoreType());
+        try (InputStream is = ResourceUtils.getURL(properties.getTrustStore()).openStream()) {
+            trustStore.load(is, trustStorePass.toCharArray());
         }
+
+        // ucitava key store
+        final KeyStore keyStore = KeyStore.getInstance(properties.getKeyStoreType());
+        try (InputStream is = ResourceUtils.getURL(properties.getKeyStore()).openStream()) {
+            keyStore.load(is, keyStorePass.toCharArray());
+        }
+
+        // izvlaci private key klijenta da bi mogao da kreira digitalni potpis za mTLS autentikaciju sa serverom
+        final PrivateKey privateKey = (PrivateKey) keyStore.getKey(keyAlias, keyStorePass.toCharArray());
+
+        // kreira certificate chain za private key da bi mogao da posalje serveru
+        Certificate[] certChain = keyStore.getCertificateChain(keyAlias);
+        X509Certificate[] x509CertificateChain = Arrays.stream(certChain)
+                .map(certificate -> (X509Certificate) certificate)
+                .collect(Collectors.toList())
+                .toArray(new X509Certificate[certChain.length]);
+
+        SslContext sslContext = SslContextBuilder.forClient()
+                .keyManager(privateKey, keyStorePass, x509CertificateChain)
+                .trustManager(extractX509Certificates(trustStore)) // izvlaci trusted sertifikate iz trust store-a
+                .build();
+
+        HttpClient httpConnector = HttpClient.create().secure(t -> t.sslContext(sslContext));
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpConnector))
+                .baseUrl(properties.getEnigmaBaseUrl())
+                .filter(authFilterFunction)
+                .build();
     }
 
     private X509Certificate[] extractX509Certificates(KeyStore store) throws KeyStoreException {

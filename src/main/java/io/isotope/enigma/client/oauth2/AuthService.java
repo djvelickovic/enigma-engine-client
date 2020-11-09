@@ -14,8 +14,7 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final AtomicLong fetchTime = new AtomicLong(0);
-    private AccessToken currentAccessToken;
-
+    private volatile AccessToken currentAccessToken;
 
     private final WebClient authClient;
     private final OAuth2Properties oAuth2Properties;

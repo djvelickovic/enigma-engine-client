@@ -7,7 +7,6 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 public class EnigmaClientProperties {
 
     private String enigmaBaseUrl;
-    private Boolean twoWayEnabled = Boolean.TRUE;
 
     private String keyStore;
     private String keyStoreType = "pcks12";
@@ -27,14 +26,6 @@ public class EnigmaClientProperties {
 
     public void setOauth2(OAuth2Properties oauth2) {
         this.oauth2 = oauth2;
-    }
-
-    public Boolean getTwoWayEnabled() {
-        return twoWayEnabled;
-    }
-
-    public void setTwoWayEnabled(Boolean twoWayEnabled) {
-        this.twoWayEnabled = twoWayEnabled;
     }
 
     public String getEnigmaBaseUrl() {

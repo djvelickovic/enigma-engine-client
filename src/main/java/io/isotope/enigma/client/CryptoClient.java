@@ -34,11 +34,10 @@ public class CryptoClient {
         }
     }
 
-    public Map<String, String> decryptMap(Map<String, String> values, String key) {
-        log.debug("Fetching key {} specification", key);
+    public Map<String, String> decryptMap(Map<String, String> values) {
         try {
             return webClient.post()
-                    .uri("crypto/map/decrypt/{key}", key)
+                    .uri("crypto/map/decrypt")
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
                     .bodyValue(values)
